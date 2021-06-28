@@ -144,6 +144,7 @@ void onEvent(ev_t ev)
         break;
 
     case EV_JOINED:
+        digitalWrite(BUILTIN_LED, HIGH);
         display.drawString(0, 12, "JOINED");
         display.display();
         Serial.println(F("EV_JOINED"));
@@ -271,6 +272,9 @@ void onEvent(ev_t ev)
 void setup()
 {
     Serial.begin(115200);
+
+    pinMode(BUILTIN_LED, OUTPUT);
+    digitalWrite(BUILTIN_LED, LOW);
 
     display.init();
     display.flipScreenVertically();
