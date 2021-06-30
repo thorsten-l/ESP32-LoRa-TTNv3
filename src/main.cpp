@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <WiFi.h>
 #include <App.hpp>
 #include <AppConfig.h>
 #include <DisplayHandler.hpp>
@@ -21,6 +22,8 @@ void setup()
 
     pinMode(BUILTIN_LED, OUTPUT);
     digitalWrite(BUILTIN_LED, LOW);
+
+    WiFi.mode(WIFI_OFF); // turn wifi module off
 
     display.init();
     display.flipScreenVertically();
