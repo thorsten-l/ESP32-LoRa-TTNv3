@@ -32,11 +32,11 @@
  *******************************************************************************/
 
 #include <Arduino.h>
-#include <AppConfig.h>
 #include <lmic.h>
 #include <hal/hal.h>
 #include <DisplayHandler.hpp>
 #include "LoRaWANHandler.hpp"
+#include <App.hpp>
 
 LoRaWANHandler loRaWANHandler;
 
@@ -183,7 +183,6 @@ void onEvent(ev_t ev)
             Serial.println(F(" bytes of payload"));
         }
 
-        delay(2000);
         display.clear();
         display.drawString(0, 0, "TXCOMPLETE");
         char buf[32];

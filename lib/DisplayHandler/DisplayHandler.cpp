@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <App.hpp>
 #include "DisplayHandler.hpp"
 
 SSD1306Wire display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64);

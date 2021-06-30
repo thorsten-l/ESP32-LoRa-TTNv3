@@ -9,10 +9,13 @@ It is a test code for TTNv3
 
 make all your private settings in `./private/AppConfig.h`
 
-## The very first build will fail!
-There is no PlatformIO event between resolving library dependencies and the compile process. 
+## LMIC Project Settings
 
-I want to make my settings either in the `platformio.ini` or in the `AppConfig.h` file. So i have to overwrite/cleanup the `lmic_project_config.h` at the `MCCI LoRaWAN LMIC Library` and this is only possible after resolving the library dependencies.
+Find the LMIC project settings at 
+
+`.pio/libdeps/<board name>/MCCI LoRaWAN LMIC library/project_config/lmic_project_config.h`
+
+e.g. `#define CFG_eu868 1` for Europe 868MHz Sender/Receiver
 
 ## Docker
 If you do not have or want to install a PlatformIO Environment but you have a docker engine running. Go into the `docker`-directory 
