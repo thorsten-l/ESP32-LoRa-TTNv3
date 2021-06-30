@@ -7,7 +7,6 @@
 #define LOG1( format, x) Serial.printf( "(%lu) " format, millis(), x )
 
 #define APP_NAME "ESP32-LoRa-TTNv3-OTAA"
-#define APP_VERSION "1.0.0"
 #define APP_AUTHOR "Dr. Thorsten Ludewig <t.ludewig@gmail.com>"
 #define APP_CONFIG_FILE "/config.bin"
 
