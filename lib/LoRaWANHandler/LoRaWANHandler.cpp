@@ -60,14 +60,14 @@ void os_getDevEui(u1_t *buf) { memcpy_P(buf, DEVEUI, 8); }
 static const u1_t PROGMEM APPKEY[16] = TTN_APP_KEY;
 void os_getDevKey(u1_t *buf) { memcpy_P(buf, APPKEY, 16); }
 
-static uint8_t mydata[32];
+static uint8_t mydata[64];
 static osjob_t sendjob;
 
 const lmic_pinmap lmic_pins = {
-    .nss = SS,
-    .rxtx = LMIC_UNUSED_PIN,
-    .rst = RST_LoRa,
-    .dio = {DIO0, DIO1, DIO2},
+    .nss = LMIC_NSS,
+    .rxtx = LMIC_RXTX,
+    .rst = LMIC_RST,
+    .dio = {LMIC_DIO0, LMIC_DIO1, LMIC_DIO2}
 };
 
 void printHex2(unsigned v)
@@ -88,7 +88,16 @@ void do_send(osjob_t *j)
     else
     {
         txFrameCounter++;
-        sprintf((char *)mydata, "Hello LoRa Fcnt=%ld", txFrameCounter);
+
+#ifdef ADC_PIN
+        // 3.3 / 4096 * 2 = 
+        float bat = analogRead(ADC_PIN) * 6.6 / 4096.0;
+        Serial.printf( "bat=%.02fV\n", bat );
+        sprintf((char *)mydata, "Fcnt=%ld, bat=%.02fV", txFrameCounter, bat );
+#else
+        sprintf((char *)mydata, "Fcnt=%ld", txFrameCounter);
+#endif
+
         // Prepare upstream data transmission at the next possible time.
         LMIC_setTxData2(1, mydata, strlen((char *)mydata), 0);        Serial.printf("%ld Packet queued\n", txFrameCounter);
     }
@@ -123,7 +132,11 @@ void onEvent(ev_t ev)
         break;
 
     case EV_JOINED:
+
+#ifdef BUILTIN_LED
         digitalWrite(BUILTIN_LED, HIGH);
+#endif
+
         display.drawString(0, 12, "JOINED");
         display.display();
         Serial.println(F("EV_JOINED"));

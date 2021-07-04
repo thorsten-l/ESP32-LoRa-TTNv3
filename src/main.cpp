@@ -15,13 +15,14 @@ void printAsDouble(const char *label, uint32_t value, double divisor,
     Serial.println(unit);
 }
 
-
 void setup()
 {
     Serial.begin(115200);
 
+#ifdef BUILTIN_LED
     pinMode(BUILTIN_LED, OUTPUT);
     digitalWrite(BUILTIN_LED, LOW);
+#endif
 
     WiFi.mode(WIFI_OFF); // turn wifi module off
 
@@ -62,6 +63,11 @@ void setup()
     printAsDouble("Free Sketch Space   : ", ESP.getFreeSketchSpace(), 1024, "KB");
 
     Serial.println();
+
+#ifdef BUILTIN_LED
+    Serial.printf( "BUILTIN_LED=%d\n", BUILTIN_LED );
+#endif
+    Serial.printf( "OLED_RST=%d\n", OLED_RST );
 
     display.clear();
     display.display();

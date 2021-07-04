@@ -2,7 +2,7 @@
 #include <App.hpp>
 #include "DisplayHandler.hpp"
 
-SSD1306Wire display(0x3c, SDA_OLED, SCL_OLED, RST_OLED, GEOMETRY_128_64);
+SSD1306Wire display(0x3c, OLED_SDA, OLED_SCL, OLED_RST, GEOMETRY_128_64);
 DisplayHandler displayHandler;
 
 void DisplayHandler::printStatus(const char *status)
