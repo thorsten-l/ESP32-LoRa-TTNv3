@@ -38,6 +38,8 @@
 #include "LoRaWANHandler.hpp"
 #include <App.hpp>
 
+#define NO_BAT_SAMPLES 64
+
 LoRaWANHandler loRaWANHandler;
 
 unsigned long txFrameCounter = 0;
@@ -67,8 +69,7 @@ const lmic_pinmap lmic_pins = {
     .nss = LMIC_NSS,
     .rxtx = LMIC_RXTX,
     .rst = LMIC_RST,
-    .dio = {LMIC_DIO0, LMIC_DIO1, LMIC_DIO2}
-};
+    .dio = {LMIC_DIO0, LMIC_DIO1, LMIC_DIO2}};
 
 void printHex2(unsigned v)
 {
@@ -90,16 +91,24 @@ void do_send(osjob_t *j)
         txFrameCounter++;
 
 #ifdef ADC_PIN
-        // 3.3 / 4095 * 2 = 
-        float bat = analogRead(ADC_PIN) * 6.6 / 4095.0;
-        Serial.printf( "bat=%.02fV\n", bat );
-        sprintf((char *)mydata, "Fcnt=%ld, bat=%.02fV", txFrameCounter, bat );
+        float bat_sum = 0;
+        for (int i = 0; i < NO_BAT_SAMPLES; i++)
+        {
+            bat_sum += analogRead(ADC_PIN);
+        }
+        bat_sum /= NO_BAT_SAMPLES;
+
+        // 3.3 / 4095 * 2 =
+        float bat = bat_sum * 6.6 / 4095.0;
+        Serial.printf("bat=%.02fV\n", bat);
+        sprintf((char *)mydata, "Fcnt=%ld, bat=%.02fV", txFrameCounter, bat);
 #else
         sprintf((char *)mydata, "Fcnt=%ld", txFrameCounter);
 #endif
 
         // Prepare upstream data transmission at the next possible time.
-        LMIC_setTxData2(1, mydata, strlen((char *)mydata), 0);        Serial.printf("%ld Packet queued\n", txFrameCounter);
+        LMIC_setTxData2(1, mydata, strlen((char *)mydata), 0);
+        Serial.printf("%ld Packet queued\n", txFrameCounter);
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
@@ -195,17 +204,17 @@ void onEvent(ev_t ev)
             Serial.print(F("Received "));
             Serial.print(LMIC.dataLen);
             Serial.println(F(" bytes of payload"));
-            for( int i=0; i<LMIC.dataLen; i++ )
+            for (int i = 0; i < LMIC.dataLen; i++)
             {
-                Serial.printf( "%02X ", LMIC.frame[LMIC.dataBeg + i]);
+                Serial.printf("%02X ", LMIC.frame[LMIC.dataBeg + i]);
             }
             Serial.println();
 
-            for( int i=0; i<8 && i<LMIC.dataLen; i++ )
+            for (int i = 0; i < 8 && i < LMIC.dataLen; i++)
             {
                 char buf[3];
-                sprintf( buf, "%02X", LMIC.frame[LMIC.dataBeg + i]);
-                display.drawString( i*16, 36, buf );
+                sprintf(buf, "%02X", LMIC.frame[LMIC.dataBeg + i]);
+                display.drawString(i * 16, 36, buf);
             }
         }
 
@@ -285,8 +294,6 @@ void LoRaWANHandler::setup()
     os_init();
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
-
-    // Start job (sending automatically starts OTAA too)
 }
 
 void LoRaWANHandler::runOnce()
