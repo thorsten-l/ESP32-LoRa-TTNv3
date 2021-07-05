@@ -40,5 +40,21 @@
 #define ADC_PIN   35
 #endif
 
+#ifdef TTGO_LORA32_V21
+
+#define LMIC_NSS  18
+#define LMIC_RXTX LMIC_UNUSED_PIN
+#define LMIC_RST  23
+#define LMIC_DIO0 26
+#define LMIC_DIO1 33
+#define LMIC_DIO2 32
+
+#define OLED_SDA  21
+#define OLED_SCL  22
+#define OLED_RST  16
+
+#define ADC_PIN   35
+#endif
+
 
 #endif
