@@ -90,8 +90,8 @@ void do_send(osjob_t *j)
         txFrameCounter++;
 
 #ifdef ADC_PIN
-        // 3.3 / 4096 * 2 = 
-        float bat = analogRead(ADC_PIN) * 6.6 / 4096.0;
+        // 3.3 / 4095 * 2 = 
+        float bat = analogRead(ADC_PIN) * 6.6 / 4095.0;
         Serial.printf( "bat=%.02fV\n", bat );
         sprintf((char *)mydata, "Fcnt=%ld, bat=%.02fV", txFrameCounter, bat );
 #else
@@ -185,6 +185,7 @@ void onEvent(ev_t ev)
 
     case EV_TXCOMPLETE:
         Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
+        display.clear();
 
         if (LMIC.txrxFlags & TXRX_ACK)
             Serial.println(F("Received ack"));
@@ -194,9 +195,20 @@ void onEvent(ev_t ev)
             Serial.print(F("Received "));
             Serial.print(LMIC.dataLen);
             Serial.println(F(" bytes of payload"));
+            for( int i=0; i<LMIC.dataLen; i++ )
+            {
+                Serial.printf( "%02X ", LMIC.frame[LMIC.dataBeg + i]);
+            }
+            Serial.println();
+
+            for( int i=0; i<8 && i<LMIC.dataLen; i++ )
+            {
+                char buf[3];
+                sprintf( buf, "%02X", LMIC.frame[LMIC.dataBeg + i]);
+                display.drawString( i*16, 36, buf );
+            }
         }
 
-        display.clear();
         display.drawString(0, 0, "TXCOMPLETE");
         char buf[32];
         sprintf(buf, "TX cnt: %ld", txFrameCounter);
