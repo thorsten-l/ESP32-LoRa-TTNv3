@@ -213,7 +213,7 @@ void onEvent(ev_t ev)
         char buf[32];
         sprintf(buf, "TX cnt: %ld", txFrameCounter);
         display.drawString(0, 12, buf);
-        sprintf(buf, "RX cnt: %ld", rxFrameCounter);
+        sprintf(buf, "RX cnt: %ld (%d)", rxFrameCounter, LMIC.dataLen);
         display.drawString(0, 24, buf);
         display.display();
 
