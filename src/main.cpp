@@ -34,10 +34,10 @@ void setup()
 
     display.setFont(ArialMT_Plain_10);
     display.drawString(0, 0, APP_NAME );
-    display.drawString(0, 12, "Version: " APP_VERSION );
-    display.drawString(0, 24, "Build Date: " __DATE__);
-    display.drawString(0, 36, "Build Time: " __TIME__);
-    display.drawString(0, 48, "Booting...");
+    display.drawString(0, 12, "Board: " PIOENV );
+    display.drawString(0, 24, "Version: " APP_VERSION );
+    display.drawString(0, 36, "Build Date: " __DATE__);
+    display.drawString(0, 48, "Build Time: " __TIME__);
     display.display();
 
     loRaWANHandler.setup();
@@ -62,12 +62,10 @@ void setup()
     printAsDouble("Sketch Size         : ", ESP.getSketchSize(), 1024, "KB");
     printAsDouble("Free Sketch Space   : ", ESP.getFreeSketchSpace(), 1024, "KB");
 
-    Serial.println();
-
-#ifdef BUILTIN_LED
-    Serial.printf( "BUILTIN_LED=%d\n", BUILTIN_LED );
+    loRaWANHandler.printPinout();
+#ifdef STOP_AFTER_PINOUT
+    delay(1000000000);
 #endif
-    Serial.printf( "OLED_RST=%d\n", OLED_RST );
 
     display.clear();
     display.display();

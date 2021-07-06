@@ -36,3 +36,66 @@ Find a JavaScript payload formatter in the `TTNv3` directory.
 - [TheThingsNetwork](https://www.thethingsnetwork.org/)
 - [MCCI Arduino LoRaWAN Library](https://github.com/mcci-catena/arduino-lorawan)
 
+## Pinouts
+
+```text
+PIO Environment : heltec_wifi_lora_32
+LMIC_NSS  = 18
+LMIC_RXTX = 255
+LMIC_RST  = 14
+LMIC_DIO0 = 26
+LMIC_DIO1 = 33
+LMIC_DIO2 = 32
+OLED_SDA = 4
+OLED_SCL = 15
+OLED_RST = 16
+BUILTIN_LED = 25
+
+PIO Environment : heltec_wifi_lora_32_V2
+LMIC_NSS  = 18
+LMIC_RXTX = 255
+LMIC_RST  = 14
+LMIC_DIO0 = 26
+LMIC_DIO1 = 35
+LMIC_DIO2 = 34
+OLED_SDA = 4
+OLED_SCL = 15
+OLED_RST = 16
+BUILTIN_LED = 25
+
+PIO Environment : ttgo-lora32-v1
+LMIC_NSS  = 18
+LMIC_RXTX = 255
+LMIC_RST  = 14
+LMIC_DIO0 = 26
+LMIC_DIO1 = 33
+LMIC_DIO2 = 32
+OLED_SDA = 4
+OLED_SCL = 15
+OLED_RST = 16
+BUILTIN_LED = 2
+
+PIO Environment : ttgo-lora32-v2
+LMIC_NSS  = 18
+LMIC_RXTX = 255
+LMIC_RST  = 23
+LMIC_DIO0 = 26
+LMIC_DIO1 = 33
+LMIC_DIO2 = 32
+OLED_SDA = 21
+OLED_SCL = 22
+OLED_RST = 16
+BUILTIN_LED = 22 *this is useless*, same as OLED_SCL
+
+PIO Environment : ttgo-lora32-v21
+LMIC_NSS  = 18
+LMIC_RXTX = 255
+LMIC_RST  = 23
+LMIC_DIO0 = 26
+LMIC_DIO1 = 33
+LMIC_DIO2 = 32
+OLED_SDA = 21
+OLED_SCL = 22
+OLED_RST = 16
+BUILTIN_LED = 25
+```
