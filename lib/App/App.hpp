@@ -10,7 +10,20 @@
 #define APP_AUTHOR "Dr. Thorsten Ludewig <t.ludewig@gmail.com>"
 #define APP_CONFIG_FILE "/config.bin"
 
-#if defined(HELTEC) || defined(TTGO_LORA32_V1)
+#ifdef HELTEC
+#define LMIC_NSS  SS
+#define LMIC_RXTX LMIC_UNUSED_PIN
+#define LMIC_RST  RST_LoRa
+#define LMIC_DIO0 DIO0 
+#define LMIC_DIO1 DIO1
+#define LMIC_DIO2 DIO2
+
+#define OLED_SDA  SDA_OLED
+#define OLED_SCL  SCL_OLED
+#define OLED_RST  RST_OLED
+#endif
+
+#ifdef TTGO_LORA32_V1
 #define LMIC_NSS  18
 #define LMIC_RXTX LMIC_UNUSED_PIN
 #define LMIC_RST  14
