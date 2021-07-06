@@ -11,6 +11,7 @@ public:
   void setup();
   void runOnce();
   void start();
+  void printPinout();
 };
 
 extern LoRaWANHandler loRaWANHandler;

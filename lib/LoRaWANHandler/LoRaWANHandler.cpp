@@ -305,3 +305,22 @@ void LoRaWANHandler::start()
 {
     do_send(&sendjob);
 }
+
+void LoRaWANHandler::printPinout()
+{
+    Serial.printf("\nPIO Environment : %s\n", PIOENV);
+    Serial.printf("LMIC_NSS  = %d\n", LMIC_NSS);
+    Serial.printf("LMIC_RXTX = %d\n", LMIC_RXTX);
+    Serial.printf("LMIC_RST  = %d\n", LMIC_RST);
+    Serial.printf("LMIC_DIO0 = %d\n", LMIC_DIO0);
+    Serial.printf("LMIC_DIO1 = %d\n", LMIC_DIO1);
+    Serial.printf("LMIC_DIO2 = %d\n", LMIC_DIO2);
+    Serial.printf("OLED_SDA = %d\n", OLED_SDA);
+    Serial.printf("OLED_SCL = %d\n", OLED_SCL);
+    Serial.printf("OLED_RST = %d\n", OLED_RST);
+
+#ifdef BUILTIN_LED
+    Serial.printf( "BUILTIN_LED = %d\n", BUILTIN_LED );
+#endif
+    Serial.println();
+}
