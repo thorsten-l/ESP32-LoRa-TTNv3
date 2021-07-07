@@ -6,9 +6,49 @@
 #define LOG0( format ) Serial.printf( "(%lu) " format, millis())
 #define LOG1( format, x) Serial.printf( "(%lu) " format, millis(), x )
 
-#define APP_NAME "ESP32-LoRa-TTNv3-OTAA"
+
+#define APP_NAME "ESP32-LoRa-TTNv3"
+
+#ifdef ACTIVATION_MODE_OTAA
+#undef APP_NAME
+#define APP_NAME "ESP32-LoRa-TTNv3 OTAA"
+#endif
+
+#ifdef ACTIVATION_MODE_ABP
+#undef APP_NAME
+#define APP_NAME "ESP32-LoRa-TTNv3 ABP"
+#endif
+
 #define APP_AUTHOR "Dr. Thorsten Ludewig <t.ludewig@gmail.com>"
 #define APP_CONFIG_FILE "/config.bin"
+
+#define NO_BAT_SAMPLES 64
+
+#ifdef SERIAL_ON
+#define SERIAL_PRINT( value ) Serial.print( value )
+#define SERIAL_PRINTF( format, ... ) Serial.printf( format, __VA_ARGS__ )
+#define SERIAL_PRINTB( value, base ) Serial.print( value, base )
+#define SERIAL_PRINTLN( value ) Serial.println( value )
+#define SERIAL_PRINTLNB( value, base ) Serial.println( value, base )
+#else
+#define SERIAL_PRINT( value )
+#define SERIAL_PRINTF( format, ... )
+#define SERIAL_PRINTB( value, base )
+#define SERIAL_PRINTLN( value )
+#define SERIAL_PRINTLNB( value, base )
+#endif
+
+#ifdef DISPLAY_ON
+#define DISPLAY_STATUS( value ) displayHandler.printStatus( value ) 
+#define DISPLAY_ERROR( value ) displayHandler.printError( value ) 
+#define DISPLAY_STRING( x, y, value ) display.drawString( x, y, value ) 
+#else
+#define DISPLAY_STATUS( value )
+#define DISPLAY_ERROR( value )
+#define DISPLAY_STRING( x, y, value )
+#endif
+
+// Pinout definitions
 
 #ifdef HELTEC
 #define LMIC_NSS  SS

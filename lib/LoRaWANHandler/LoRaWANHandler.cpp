@@ -37,14 +37,18 @@
 #include <DisplayHandler.hpp>
 #include "LoRaWANHandler.hpp"
 #include <App.hpp>
+#include <FS.h>
+#include <SPIFFS.h>
 
-#define NO_BAT_SAMPLES 64
+#define uS_TO_S_FACTOR 1000000
 
 LoRaWANHandler loRaWANHandler;
 
+u4_t sequence = 1;
 unsigned long txFrameCounter = 0;
 unsigned long rxFrameCounter = 0;
 
+#ifdef ACTIVATION_MODE_OTAA
 // This EUI must be in little-endian format, so least-significant-byte
 // first. When copying an EUI from ttnctl output, this means to reverse
 // the bytes. For TTN issued EUIs the last bytes should be 0xD5, 0xB3,
@@ -61,8 +65,19 @@ void os_getDevEui(u1_t *buf) { memcpy_P(buf, DEVEUI, 8); }
 // practice, a key taken from ttnctl can be copied as-is.
 static const u1_t PROGMEM APPKEY[16] = TTN_APP_KEY;
 void os_getDevKey(u1_t *buf) { memcpy_P(buf, APPKEY, 16); }
+#endif
 
-static uint8_t mydata[64];
+#ifdef ACTIVATION_MODE_ABP
+static uint8_t NETWORK_SESSION_KEY[16] = TTN_NETWORK_SESSION_KEY;
+static uint8_t APP_SESSION_KEY[16] = TTN_APP_SESSION_KEY;
+static u4_t DEVADDR = TTN_DEVICE_ADDRESS;
+
+void os_getArtEui(u1_t *buf) {}
+void os_getDevEui(u1_t *buf) {}
+void os_getDevKey(u1_t *buf) {}
+#endif
+
+// static uint8_t mydata[64];
 static osjob_t sendjob;
 
 const lmic_pinmap lmic_pins = {
@@ -75,8 +90,8 @@ void printHex2(unsigned v)
 {
     v &= 0xff;
     if (v < 16)
-        Serial.print('0');
-    Serial.print(v, HEX);
+        SERIAL_PRINT('0');
+    SERIAL_PRINTB(v, HEX);
 }
 
 void do_send(osjob_t *j)
@@ -84,140 +99,122 @@ void do_send(osjob_t *j)
     // Check if there is not a current TX/RX job running
     if (LMIC.opmode & OP_TXRXPEND)
     {
-        Serial.println(F("OP_TXRXPEND, not sending"));
+        SERIAL_PRINTLN(F("OP_TXRXPEND, not sending"));
     }
     else
     {
+#ifdef ACTIVATION_MODE_OTAA
         txFrameCounter++;
-
-#ifdef ADC_PIN
-        float bat_sum = 0;
-        for (int i = 0; i < NO_BAT_SAMPLES; i++)
-        {
-            bat_sum += analogRead(ADC_PIN);
-        }
-        bat_sum /= NO_BAT_SAMPLES;
-
-        // 3.3 / 4095 * 2 =
-        float bat = bat_sum * 6.6 / 4095.0;
-        Serial.printf("bat=%.02fV\n", bat);
-        sprintf((char *)mydata, "Fcnt=%ld, bat=%.02fV", txFrameCounter, bat);
-#else
-        sprintf((char *)mydata, "Fcnt=%ld", txFrameCounter);
 #endif
 
-        // Prepare upstream data transmission at the next possible time.
-        LMIC_setTxData2(1, mydata, strlen((char *)mydata), 0);
-        Serial.printf("%ld Packet queued\n", txFrameCounter);
+#ifdef DEEP_SLEEP_ENABLED
+        txFrameCounter = sequence;
+#endif
+
+        lora_send(txFrameCounter);
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
 
 void onEvent(ev_t ev)
 {
-    Serial.print(os_getTime());
-    Serial.print(": ");
+    SERIAL_PRINT(os_getTime());
+    SERIAL_PRINT(": ");
     switch (ev)
     {
     case EV_SCAN_TIMEOUT:
-        Serial.println(F("EV_SCAN_TIMEOUT"));
+        SERIAL_PRINTLN(F("EV_SCAN_TIMEOUT"));
         break;
 
     case EV_BEACON_FOUND:
-        Serial.println(F("EV_BEACON_FOUND"));
+        SERIAL_PRINTLN(F("EV_BEACON_FOUND"));
         break;
 
     case EV_BEACON_MISSED:
-        Serial.println(F("EV_BEACON_MISSED"));
+        SERIAL_PRINTLN(F("EV_BEACON_MISSED"));
         break;
 
     case EV_BEACON_TRACKED:
-        Serial.println(F("EV_BEACON_TRACKED"));
+        SERIAL_PRINTLN(F("EV_BEACON_TRACKED"));
         break;
 
     case EV_JOINING:
-        Serial.println(F("EV_JOINING"));
-        displayHandler.printStatus("JOINING");
+        SERIAL_PRINTLN(F("EV_JOINING"));
+        DISPLAY_STATUS("JOINING");
         break;
 
     case EV_JOINED:
+    {
+        u4_t netid = 0;
+        devaddr_t devaddr = 0;
+        u1_t nwkKey[16];
+        u1_t artKey[16];
+        LMIC_getSessionKeys(&netid, &devaddr, nwkKey, artKey);
 
 #ifdef BUILTIN_LED
         digitalWrite(BUILTIN_LED, HIGH);
 #endif
 
+#ifdef DISPLAY_ON
         display.drawString(0, 12, "JOINED");
         display.display();
-        Serial.println(F("EV_JOINED"));
+#endif
+
+#ifdef SERIAL_ON
+        SERIAL_PRINTLN(F("EV_JOINED"));
+        SERIAL_PRINT("netid: ");
+        SERIAL_PRINTLNB(netid, DEC);
+        SERIAL_PRINT("devaddr: ");
+        SERIAL_PRINTLNB(devaddr, HEX);
+        SERIAL_PRINT("AppSKey: ");
+        for (size_t i = 0; i < sizeof(artKey); ++i)
         {
-            u4_t netid = 0;
-            devaddr_t devaddr = 0;
-            u1_t nwkKey[16];
-            u1_t artKey[16];
-            LMIC_getSessionKeys(&netid, &devaddr, nwkKey, artKey);
-            Serial.print("netid: ");
-            Serial.println(netid, DEC);
-            Serial.print("devaddr: ");
-            Serial.println(devaddr, HEX);
-            Serial.print("AppSKey: ");
-            for (size_t i = 0; i < sizeof(artKey); ++i)
-            {
-                if (i != 0)
-                    Serial.print("-");
-                printHex2(artKey[i]);
-            }
-            Serial.println("");
-            Serial.print("NwkSKey: ");
-            for (size_t i = 0; i < sizeof(nwkKey); ++i)
-            {
-                if (i != 0)
-                    Serial.print("-");
-                printHex2(nwkKey[i]);
-            }
-            Serial.println();
+            if (i != 0)
+                SERIAL_PRINT("-");
+            printHex2(artKey[i]);
         }
+        SERIAL_PRINTLN("");
+        SERIAL_PRINT("NwkSKey: ");
+        for (size_t i = 0; i < sizeof(nwkKey); ++i)
+        {
+            if (i != 0)
+                SERIAL_PRINT("-");
+            printHex2(nwkKey[i]);
+        }
+        SERIAL_PRINTLN();
+#endif
+
         // Disable link check validation (automatically enabled
         // during join, but because slow data rates change max TX
         // size, we don't use it in this example.
         LMIC_setLinkCheckMode(0);
-        break;
+    }
+    break;
 
     case EV_JOIN_FAILED:
-        Serial.println(F("EV_JOIN_FAILED"));
-        displayHandler.printError("JOIN_FAILED");
+        SERIAL_PRINTLN(F("EV_JOIN_FAILED"));
+        DISPLAY_ERROR("JOIN_FAILED");
         break;
 
     case EV_REJOIN_FAILED:
-        Serial.println(F("EV_REJOIN_FAILED"));
-        displayHandler.printError("REJOIN_FAILED");
+        SERIAL_PRINTLN(F("EV_REJOIN_FAILED"));
+        DISPLAY_ERROR("REJOIN_FAILED");
         break;
 
     case EV_TXCOMPLETE:
-        Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
+        SERIAL_PRINTLN(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
+#ifdef DISPLAY_ON
         display.clear();
-
+#endif
         if (LMIC.txrxFlags & TXRX_ACK)
-            Serial.println(F("Received ack"));
+            SERIAL_PRINTLN(F("Received ack"));
         if (LMIC.dataLen)
         {
             rxFrameCounter++;
-            Serial.print(F("Received "));
-            Serial.print(LMIC.dataLen);
-            Serial.println(F(" bytes of payload"));
-            for (int i = 0; i < LMIC.dataLen; i++)
-            {
-                Serial.printf("%02X ", LMIC.frame[LMIC.dataBeg + i]);
-            }
-            Serial.println();
-
-            for (int i = 0; i < 8 && i < LMIC.dataLen; i++)
-            {
-                char buf[3];
-                sprintf(buf, "%02X", LMIC.frame[LMIC.dataBeg + i]);
-                display.drawString(i * 16, 36, buf);
-            }
+            lora_receive(rxFrameCounter);
         }
 
+#ifdef DISPLAY_ON
         display.drawString(0, 0, "TXCOMPLETE");
         char buf[32];
         sprintf(buf, "TX cnt: %ld", txFrameCounter);
@@ -225,44 +222,51 @@ void onEvent(ev_t ev)
         sprintf(buf, "RX cnt: %ld (%d)", rxFrameCounter, LMIC.dataLen);
         display.drawString(0, 24, buf);
         display.display();
+        delay(1000);
+#endif
 
+#ifdef DEEP_SLEEP_ENABLED
+        ESP.deepSleep(TRANSMIT_INTERVAL * uS_TO_S_FACTOR);
+        yield();
+#else
         // Schedule next transmission
-        os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TTN_TX_INTERVAL), do_send);
+        os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TRANSMIT_INTERVAL), do_send);
+#endif
         break;
 
     case EV_LOST_TSYNC:
-        Serial.println(F("EV_LOST_TSYNC"));
-        displayHandler.printError("LOST_TSYNC");
+        SERIAL_PRINTLN(F("EV_LOST_TSYNC"));
+        DISPLAY_ERROR("LOST_TSYNC");
         break;
 
     case EV_RESET:
-        Serial.println(F("EV_RESET"));
-        displayHandler.printError("RESET");
+        SERIAL_PRINTLN(F("EV_RESET"));
+        DISPLAY_ERROR("RESET");
         break;
 
     case EV_RXCOMPLETE:
         // data received in ping slot
-        Serial.println(F("EV_RXCOMPLETE"));
+        SERIAL_PRINTLN(F("EV_RXCOMPLETE"));
         break;
 
     case EV_LINK_DEAD:
-        Serial.println(F("EV_LINK_DEAD"));
-        displayHandler.printError("LINK_DEAD");
+        SERIAL_PRINTLN(F("EV_LINK_DEAD"));
+        DISPLAY_ERROR("LINK_DEAD");
         break;
 
     case EV_LINK_ALIVE:
-        Serial.println(F("EV_LINK_ALIVE"));
-        displayHandler.printStatus("LINK_ALIVE");
+        SERIAL_PRINTLN(F("EV_LINK_ALIVE"));
+        DISPLAY_STATUS("LINK_ALIVE");
         break;
 
     case EV_TXSTART:
-        Serial.println(F("EV_TXSTART"));
-        displayHandler.printStatus("TXSTART");
+        SERIAL_PRINTLN(F("EV_TXSTART"));
+        DISPLAY_STATUS("TXSTART");
         break;
 
     case EV_TXCANCELED:
-        Serial.println(F("EV_TXCANCELED"));
-        displayHandler.printError("TXCANCELED");
+        SERIAL_PRINTLN(F("EV_TXCANCELED"));
+        DISPLAY_ERROR("TXCANCELED");
         break;
 
     case EV_RXSTART:
@@ -270,13 +274,13 @@ void onEvent(ev_t ev)
         break;
 
     case EV_JOIN_TXCOMPLETE:
-        Serial.println(F("EV_JOIN_TXCOMPLETE: no JoinAccept"));
-        displayHandler.printStatus("NO JOIN ACCEPTED");
+        SERIAL_PRINTLN(F("EV_JOIN_TXCOMPLETE: no JoinAccept"));
+        DISPLAY_STATUS("NO JOIN ACCEPTED");
         break;
 
     default:
-        Serial.print(F("Unknown event: "));
-        Serial.println((unsigned)ev);
+        SERIAL_PRINT(F("Unknown event: "));
+        SERIAL_PRINTLN((unsigned)ev);
         break;
     }
 }
@@ -294,6 +298,29 @@ void LoRaWANHandler::setup()
     os_init();
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
+
+#ifdef ACTIVATION_MODE_ABP
+    LMIC_setSession(0x13, DEVADDR, NETWORK_SESSION_KEY, APP_SESSION_KEY);
+
+    LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);  // g-band
+    LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI); // g-band
+    LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);  // g-band
+    LMIC_setupChannel(3, 867100000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);  // g-band
+    LMIC_setupChannel(4, 867300000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);  // g-band
+    LMIC_setupChannel(5, 867500000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);  // g-band
+    LMIC_setupChannel(6, 867700000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);  // g-band
+    LMIC_setupChannel(7, 867900000, DR_RANGE_MAP(DR_SF12, DR_SF7), BAND_CENTI);  // g-band
+    LMIC_setupChannel(8, 868800000, DR_RANGE_MAP(DR_FSK, DR_FSK), BAND_MILLI);   // g2-band  // LMIC_setClockError(7);
+
+    // Disable link check validation
+    LMIC_setLinkCheckMode(0);
+
+    // TTN uses SF9 for its RX2 window.
+    LMIC.dn2Dr = DR_SF9;
+
+    // Set data rate and transmit power for uplink
+    LMIC_setDrTxpow(DR_SF7, 14);
+#endif
 }
 
 void LoRaWANHandler::runOnce()
@@ -303,24 +330,45 @@ void LoRaWANHandler::runOnce()
 
 void LoRaWANHandler::start()
 {
+    if (SPIFFS.begin(true))
+    {
+        if (SPIFFS.exists(SEQUENCE_FILE))
+        {
+            File file = SPIFFS.open(SEQUENCE_FILE, "rb");
+            file.readBytes((char *)&sequence, 4);
+            file.close();
+            sequence++;
+        }
+
+        SERIAL_PRINTF("sequence=%u\n", sequence);
+        File file = SPIFFS.open(SEQUENCE_FILE, "wb");
+        file.write((uint8_t *)&sequence, 4);
+        file.close();
+        SPIFFS.end();
+    }
+
+#ifdef ACTIVATION_MODE_ABP
+    LMIC.seqnoUp = sequence;
+#endif
+
     do_send(&sendjob);
 }
 
 void LoRaWANHandler::printPinout()
 {
-    Serial.printf("\nPIO Environment : %s\n", PIOENV);
-    Serial.printf("LMIC_NSS  = %d\n", LMIC_NSS);
-    Serial.printf("LMIC_RXTX = %d\n", LMIC_RXTX);
-    Serial.printf("LMIC_RST  = %d\n", LMIC_RST);
-    Serial.printf("LMIC_DIO0 = %d\n", LMIC_DIO0);
-    Serial.printf("LMIC_DIO1 = %d\n", LMIC_DIO1);
-    Serial.printf("LMIC_DIO2 = %d\n", LMIC_DIO2);
-    Serial.printf("OLED_SDA = %d\n", OLED_SDA);
-    Serial.printf("OLED_SCL = %d\n", OLED_SCL);
-    Serial.printf("OLED_RST = %d\n", OLED_RST);
+    SERIAL_PRINTF("\nPIO Environment : %s\n", PIOENV);
+    SERIAL_PRINTF("LMIC_NSS  = %d\n", LMIC_NSS);
+    SERIAL_PRINTF("LMIC_RXTX = %d\n", LMIC_RXTX);
+    SERIAL_PRINTF("LMIC_RST  = %d\n", LMIC_RST);
+    SERIAL_PRINTF("LMIC_DIO0 = %d\n", LMIC_DIO0);
+    SERIAL_PRINTF("LMIC_DIO1 = %d\n", LMIC_DIO1);
+    SERIAL_PRINTF("LMIC_DIO2 = %d\n", LMIC_DIO2);
+    SERIAL_PRINTF("OLED_SDA = %d\n", OLED_SDA);
+    SERIAL_PRINTF("OLED_SCL = %d\n", OLED_SCL);
+    SERIAL_PRINTF("OLED_RST = %d\n", OLED_RST);
 
 #ifdef BUILTIN_LED
-    Serial.printf( "BUILTIN_LED = %d\n", BUILTIN_LED );
+    SERIAL_PRINTF("BUILTIN_LED = %d\n", BUILTIN_LED);
 #endif
-    Serial.println();
+    SERIAL_PRINTLN();
 }

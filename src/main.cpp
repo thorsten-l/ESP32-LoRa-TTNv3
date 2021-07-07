@@ -25,23 +25,10 @@ void setup()
 #endif
 
     WiFi.mode(WIFI_OFF); // turn wifi module off
-
-    display.init();
-    display.flipScreenVertically();
-    display.clear();
-    display.setBrightness(255);
-    display.display();
-
-    display.setFont(ArialMT_Plain_10);
-    display.drawString(0, 0, APP_NAME );
-    display.drawString(0, 12, "Board: " PIOENV );
-    display.drawString(0, 24, "Version: " APP_VERSION );
-    display.drawString(0, 36, "Build Date: " __DATE__);
-    display.drawString(0, 48, "Build Time: " __TIME__);
-    display.display();
-
+    displayHandler.setup();
     loRaWANHandler.setup();
 
+#ifdef SERIAL_ON
     delay(3000);
 
     Serial.println("\n\n\n" APP_NAME " - Version " APP_VERSION " by " APP_AUTHOR);
@@ -63,12 +50,16 @@ void setup()
     printAsDouble("Free Sketch Space   : ", ESP.getFreeSketchSpace(), 1024, "KB");
 
     loRaWANHandler.printPinout();
+#endif
+
 #ifdef STOP_AFTER_PINOUT
     delay(1000000000);
 #endif
 
+#ifdef DISPLAY_ON
     display.clear();
     display.display();
+#endif
 
     loRaWANHandler.start();
 }

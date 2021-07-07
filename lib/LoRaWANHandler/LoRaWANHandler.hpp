@@ -4,6 +4,9 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <SSD1306Wire.h>
+#include <lmic.h>
+
+#define SEQUENCE_FILE "/lmicseq.bin"
 
 class LoRaWANHandler
 {
@@ -15,5 +18,8 @@ public:
 };
 
 extern LoRaWANHandler loRaWANHandler;
+
+extern void lora_send(unsigned long txFrameCounter);
+extern void lora_receive(unsigned long rxFrameCounter);
 
 #endif
