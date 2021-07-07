@@ -1,4 +1,4 @@
-# ESP32-LoRa-TTNv3-OTAA
+# ESP32-LoRa-TTNv3
 
 This sample PlatformIO project sends every minute 'Hello LoRa Fcnt=nnn' via LoRaWAN to TheThingsNetwork.
 It is a test code for TTNv3
