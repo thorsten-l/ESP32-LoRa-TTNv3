@@ -24,7 +24,7 @@
 
 #define NO_BAT_SAMPLES 64
 
-#ifdef SERIAL_ON
+#ifdef SERIAL_ENABLED
 #define SERIAL_PRINT( value ) Serial.print( value )
 #define SERIAL_PRINTF( format, ... ) Serial.printf( format, __VA_ARGS__ )
 #define SERIAL_PRINTB( value, base ) Serial.print( value, base )
@@ -38,7 +38,7 @@
 #define SERIAL_PRINTLNB( value, base )
 #endif
 
-#ifdef DISPLAY_ON
+#ifdef DISPLAY_ENABLED
 #define DISPLAY_STATUS( value ) displayHandler.printStatus( value ) 
 #define DISPLAY_ERROR( value ) displayHandler.printError( value ) 
 #define DISPLAY_STRING( x, y, value ) display.drawString( x, y, value ) 

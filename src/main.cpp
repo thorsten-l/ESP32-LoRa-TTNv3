@@ -19,7 +19,7 @@ void setup()
 {
     Serial.begin(115200);
 
-#ifdef BUILTIN_LED
+#if defined(BUILTIN_LED) && defined(BUILTIN_LED_ENABLED)
     pinMode(BUILTIN_LED, OUTPUT);
     digitalWrite(BUILTIN_LED, LOW);
 #endif
@@ -28,7 +28,7 @@ void setup()
     displayHandler.setup();
     loRaWANHandler.setup();
 
-#ifdef SERIAL_ON
+#ifdef SERIAL_ENABLED
     delay(3000);
 
     Serial.println("\n\n\n" APP_NAME " - Version " APP_VERSION " by " APP_AUTHOR);
@@ -56,7 +56,7 @@ void setup()
     delay(1000000000);
 #endif
 
-#ifdef DISPLAY_ON
+#ifdef DISPLAY_ENABLED
     display.clear();
     display.display();
 #endif
