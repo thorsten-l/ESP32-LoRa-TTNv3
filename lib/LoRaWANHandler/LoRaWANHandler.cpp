@@ -44,9 +44,8 @@
 
 LoRaWANHandler loRaWANHandler;
 
-u4_t sequence = 1;
-unsigned long txFrameCounter = 0;
-unsigned long rxFrameCounter = 0;
+RTC_DATA_ATTR unsigned long txFrameCounter = 0;
+RTC_DATA_ATTR unsigned long rxFrameCounter = 0;
 
 #ifdef ACTIVATION_MODE_OTAA
 // This EUI must be in little-endian format, so least-significant-byte
@@ -68,6 +67,8 @@ void os_getDevKey(u1_t *buf) { memcpy_P(buf, APPKEY, 16); }
 #endif
 
 #ifdef ACTIVATION_MODE_ABP
+u4_t sequence = 1;
+
 static uint8_t NETWORK_SESSION_KEY[16] = TTN_NETWORK_SESSION_KEY;
 static uint8_t APP_SESSION_KEY[16] = TTN_APP_SESSION_KEY;
 static u4_t DEVADDR = TTN_DEVICE_ADDRESS;
@@ -103,12 +104,11 @@ void do_send(osjob_t *j)
     }
     else
     {
-#ifdef ACTIVATION_MODE_OTAA
-        txFrameCounter++;
-#endif
 
-#ifdef DEEP_SLEEP_ENABLED
+#ifdef ACTIVATION_MODE_ABP
         txFrameCounter = sequence;
+#else
+        txFrameCounter++;
 #endif
 
         lora_send(txFrameCounter);
@@ -151,16 +151,16 @@ void onEvent(ev_t ev)
         u1_t artKey[16];
         LMIC_getSessionKeys(&netid, &devaddr, nwkKey, artKey);
 
-#ifdef BUILTIN_LED
+#if defined(BUILTIN_LED) && defined(BUILTIN_LED_ENABLED)
         digitalWrite(BUILTIN_LED, HIGH);
 #endif
 
-#ifdef DISPLAY_ON
+#ifdef DISPLAY_ENABLED
         display.drawString(0, 12, "JOINED");
         display.display();
 #endif
 
-#ifdef SERIAL_ON
+#ifdef SERIAL_ENABLED
         SERIAL_PRINTLN(F("EV_JOINED"));
         SERIAL_PRINT("netid: ");
         SERIAL_PRINTLNB(netid, DEC);
@@ -203,7 +203,7 @@ void onEvent(ev_t ev)
 
     case EV_TXCOMPLETE:
         SERIAL_PRINTLN(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
-#ifdef DISPLAY_ON
+#ifdef DISPLAY_ENABLED
         display.clear();
 #endif
         if (LMIC.txrxFlags & TXRX_ACK)
@@ -214,7 +214,7 @@ void onEvent(ev_t ev)
             lora_receive(rxFrameCounter);
         }
 
-#ifdef DISPLAY_ON
+#ifdef DISPLAY_ENABLED
         display.drawString(0, 0, "TXCOMPLETE");
         char buf[32];
         sprintf(buf, "TX cnt: %ld", txFrameCounter);
@@ -330,6 +330,8 @@ void LoRaWANHandler::runOnce()
 
 void LoRaWANHandler::start()
 {
+
+#ifdef ACTIVATION_MODE_ABP
     if (SPIFFS.begin(true))
     {
         if (SPIFFS.exists(SEQUENCE_FILE))
@@ -347,7 +349,6 @@ void LoRaWANHandler::start()
         SPIFFS.end();
     }
 
-#ifdef ACTIVATION_MODE_ABP
     LMIC.seqnoUp = sequence;
 #endif
 
