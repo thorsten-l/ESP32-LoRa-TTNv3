@@ -47,6 +47,8 @@ LoRaWANHandler loRaWANHandler;
 RTC_DATA_ATTR unsigned long txFrameCounter = 0;
 RTC_DATA_ATTR unsigned long rxFrameCounter = 0;
 
+int bwf[] = { 125, 250, 500, 750 };
+
 #ifdef ACTIVATION_MODE_OTAA
 // This EUI must be in little-endian format, so least-significant-byte
 // first. When copying an EUI from ttnctl output, this means to reverse
@@ -208,6 +210,12 @@ void onEvent(ev_t ev)
 #endif
         if (LMIC.txrxFlags & TXRX_ACK)
             SERIAL_PRINTLN(F("Received ack"));
+
+        SERIAL_PRINTF("RSSI: %d\n", (int)LMIC.rssi);
+        SERIAL_PRINTF("SNR: %d\n", (int)LMIC.snr);
+        SERIAL_PRINTF("SF: %d\n", (LMIC.rps & 0x07) + 6);
+        SERIAL_PRINTF("BW: %d\n", bwf[(LMIC.rps >> 3) & 0x03]);
+
         if (LMIC.dataLen)
         {
             rxFrameCounter++;
@@ -217,10 +225,25 @@ void onEvent(ev_t ev)
 #ifdef DISPLAY_ENABLED
         display.drawString(0, 0, "TXCOMPLETE");
         char buf[32];
-        sprintf(buf, "TX cnt: %ld", txFrameCounter);
+        sprintf(buf, "TXC: %ld", txFrameCounter);
         display.drawString(0, 12, buf);
-        sprintf(buf, "RX cnt: %ld (%d)", rxFrameCounter, LMIC.dataLen);
+        sprintf(buf, "RXC: %ld (%d)", rxFrameCounter, LMIC.dataLen);
+        display.drawString(52, 12, buf);
+        sprintf(buf, "RSSI: %d", (int)LMIC.rssi);
         display.drawString(0, 24, buf);
+#ifdef ADC_PIN
+        sprintf(buf, "BAT: %.02fV\n", analogRead(ADC_PIN) * 6.6 / 4095.0);
+        display.drawString(52, 24, buf);
+#endif
+        sprintf(buf, "SNR: %u", LMIC.snr);
+        display.drawString(0, 36, buf);
+        sprintf(buf, "SF: %u", (LMIC.rps & 0x07) + 6);
+        display.drawString(52, 36, buf);
+        sprintf(buf, "BW: %u", bwf[(LMIC.rps >> 3) & 0x03]);
+        display.drawString(88, 36, buf);
+
+        sprintf(buf, "FREQ: %u", LMIC.freq);
+        display.drawString(0, 48, buf);
         display.display();
         delay(1000);
 #endif
@@ -262,6 +285,9 @@ void onEvent(ev_t ev)
     case EV_TXSTART:
         SERIAL_PRINTLN(F("EV_TXSTART"));
         DISPLAY_STATUS("TXSTART");
+        SERIAL_PRINTF("RSSI: %d\n", (int)LMIC.rssi);
+        SERIAL_PRINTF("SNR: %d\n", (int)LMIC.snr);
+        SERIAL_PRINTF("SF: %d\n", (LMIC.rps & 0x07) + 6);
         break;
 
     case EV_TXCANCELED:
@@ -297,6 +323,7 @@ void LoRaWANHandler::setup()
     // LMIC init
     os_init();
     // Reset the MAC state. Session and pending data transfers will be discarded.
+    LMIC.rssi = 0;
     LMIC_reset();
 
 #ifdef ACTIVATION_MODE_ABP
@@ -330,7 +357,6 @@ void LoRaWANHandler::runOnce()
 
 void LoRaWANHandler::start()
 {
-
 #ifdef ACTIVATION_MODE_ABP
     if (SPIFFS.begin(true))
     {
