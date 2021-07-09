@@ -1,7 +1,9 @@
 #include <App.hpp>
 #include <LoRaWANHandler.hpp>
+#include <DisplayHandler.hpp>
 
 static uint8_t mydata[64];
+static char buffer[24];
 
 void lora_send(unsigned long txFrameCounter)
 {
@@ -16,9 +18,10 @@ void lora_send(unsigned long txFrameCounter)
   // 3.3 / 4095 * 2 =
   float bat = bat_sum * 6.6 / 4095.0;
   SERIAL_PRINTF("bat=%.02fV\n", bat);
-  sprintf((char *)mydata, "Fcnt=%ld, bat=%.02fV", txFrameCounter, bat);
+  SERIAL_PRINTF("rssi=%d\n", LMIC.rssi);
+  sprintf((char *)mydata, "Fcnt=%ld, bat=%.02fV, rssi=%d", txFrameCounter, bat, LMIC.rssi);
 #else
-  sprintf((char *)mydata, "Fcnt=%ld", txFrameCounter);
+  sprintf((char *)mydata, "Fcnt=%ld, rssi=%d", txFrameCounter, LMIC.rssi);
 #endif
 
   // Prepare upstream data transmission at the next possible time.
