@@ -8,7 +8,7 @@ DisplayHandler displayHandler;
 void DisplayHandler::setup()
 {
     display.init();
-#ifdef DISPLAY_ON
+#ifdef DISPLAY_ENABLED
     display.flipScreenVertically();
     display.clear();
     display.setBrightness(255);
