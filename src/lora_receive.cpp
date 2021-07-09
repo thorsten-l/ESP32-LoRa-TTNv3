@@ -15,6 +15,7 @@ void lora_receive(unsigned long rxFrameCounter)
   SERIAL_PRINTLN();
 #endif
 
+/*
 #ifdef DISPLAY_ON
   for (int i = 0; i < 8 && i < LMIC.dataLen; i++)
   {
@@ -23,4 +24,6 @@ void lora_receive(unsigned long rxFrameCounter)
     display.drawString(i * 16, 36, buf);
   }
 #endif
+*/
+
 }
