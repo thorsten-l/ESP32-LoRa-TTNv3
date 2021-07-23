@@ -3,7 +3,6 @@
 #include <DisplayHandler.hpp>
 
 static uint8_t mydata[64];
-static char buffer[24];
 
 void lora_send(unsigned long txFrameCounter)
 {
