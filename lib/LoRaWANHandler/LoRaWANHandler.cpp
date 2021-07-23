@@ -106,10 +106,6 @@ void do_send(osjob_t *j)
     }
     else
     {
-#ifdef ACTIVATION_MODE_ABP
-        preferences.putUInt(SEQUENCE_KEY, LMIC.seqnoUp);
-        SERIAL_PRINTF(SEQUENCE_KEY "=%u\n", LMIC.seqnoUp);
-#endif
         lora_send(LMIC.seqnoUp);
     }
     // Next TX is scheduled after TX_COMPLETE event.
@@ -222,7 +218,7 @@ void onEvent(ev_t ev)
 #ifdef DISPLAY_ENABLED
         display.drawString(0, 0, "TXCOMPLETE");
         char buf[32];
-        sprintf(buf, "TXC: %d", LMIC.seqnoUp);
+        sprintf(buf, "TXC: %d", (LMIC.seqnoUp-1));
         display.drawString(0, 12, buf);
         sprintf(buf, "RXC: %ld (%d)", rxFrameCounter, LMIC.dataLen);
         display.drawString(52, 12, buf);
@@ -243,6 +239,11 @@ void onEvent(ev_t ev)
         display.drawString(0, 48, buf);
         display.display();
         delay(1000);
+#endif
+
+#ifdef ACTIVATION_MODE_ABP
+        preferences.putUInt(SEQUENCE_KEY, LMIC.seqnoUp);
+        SERIAL_PRINTF( "TXC " SEQUENCE_KEY "=%u\n", LMIC.seqnoUp);
 #endif
 
 #ifdef DEEP_SLEEP_ENABLED
@@ -357,7 +358,6 @@ void LoRaWANHandler::start()
 #ifdef ACTIVATION_MODE_ABP
     preferences.begin(PREFERENCE_NAME);
     LMIC.seqnoUp = preferences.getUInt(SEQUENCE_KEY);
-    LMIC.seqnoUp++;
     preferences.putUInt(SEQUENCE_KEY, LMIC.seqnoUp);
     SERIAL_PRINTF(SEQUENCE_KEY "=%u\n", LMIC.seqnoUp);
 #endif
