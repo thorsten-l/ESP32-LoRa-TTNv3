@@ -39,6 +39,7 @@
 #include <App.hpp>
 #include <FS.h>
 #include <SPIFFS.h>
+#include <Preferences.h>
 
 #define uS_TO_S_FACTOR 1000000
 
@@ -47,7 +48,7 @@ LoRaWANHandler loRaWANHandler;
 RTC_DATA_ATTR unsigned long txFrameCounter = 0;
 RTC_DATA_ATTR unsigned long rxFrameCounter = 0;
 
-int bwf[] = { 125, 250, 500, 750 };
+int bwf[] = {125, 250, 500, 750};
 
 #ifdef ACTIVATION_MODE_OTAA
 // This EUI must be in little-endian format, so least-significant-byte
@@ -69,7 +70,8 @@ void os_getDevKey(u1_t *buf) { memcpy_P(buf, APPKEY, 16); }
 #endif
 
 #ifdef ACTIVATION_MODE_ABP
-u4_t sequence = 1;
+static Preferences preferences;
+static uint32_t lmic_sequence;
 
 static uint8_t NETWORK_SESSION_KEY[16] = TTN_NETWORK_SESSION_KEY;
 static uint8_t APP_SESSION_KEY[16] = TTN_APP_SESSION_KEY;
@@ -108,7 +110,9 @@ void do_send(osjob_t *j)
     {
 
 #ifdef ACTIVATION_MODE_ABP
-        txFrameCounter = sequence;
+        txFrameCounter = lmic_sequence++;
+        preferences.putUInt(SEQUENCE_KEY, lmic_sequence);
+        SERIAL_PRINTF(SEQUENCE_KEY "=%u\n", lmic_sequence);
 #else
         txFrameCounter++;
 #endif
@@ -358,24 +362,12 @@ void LoRaWANHandler::runOnce()
 void LoRaWANHandler::start()
 {
 #ifdef ACTIVATION_MODE_ABP
-    if (SPIFFS.begin(true))
-    {
-        if (SPIFFS.exists(SEQUENCE_FILE))
-        {
-            File file = SPIFFS.open(SEQUENCE_FILE, "rb");
-            file.readBytes((char *)&sequence, 4);
-            file.close();
-            sequence++;
-        }
-
-        SERIAL_PRINTF("sequence=%u\n", sequence);
-        File file = SPIFFS.open(SEQUENCE_FILE, "wb");
-        file.write((uint8_t *)&sequence, 4);
-        file.close();
-        SPIFFS.end();
-    }
-
-    LMIC.seqnoUp = sequence;
+    preferences.begin(PREFERENCE_NAME);
+    lmic_sequence = preferences.getUInt(SEQUENCE_KEY);
+    lmic_sequence++;
+    preferences.putUInt(SEQUENCE_KEY, lmic_sequence);
+    SERIAL_PRINTF(SEQUENCE_KEY "=%u\n", lmic_sequence);
+    LMIC.seqnoUp = lmic_sequence;
 #endif
 
     do_send(&sendjob);

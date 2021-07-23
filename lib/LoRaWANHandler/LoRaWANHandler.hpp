@@ -6,7 +6,8 @@
 #include <SSD1306Wire.h>
 #include <lmic.h>
 
-#define SEQUENCE_FILE "/lmicseq.bin"
+#define PREFERENCE_NAME "lmic"
+#define SEQUENCE_KEY "sequence"
 
 class LoRaWANHandler
 {
