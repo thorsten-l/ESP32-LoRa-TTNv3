@@ -45,7 +45,6 @@
 
 LoRaWANHandler loRaWANHandler;
 
-RTC_DATA_ATTR unsigned long txFrameCounter = 0;
 RTC_DATA_ATTR unsigned long rxFrameCounter = 0;
 
 int bwf[] = {125, 250, 500, 750};
@@ -71,7 +70,6 @@ void os_getDevKey(u1_t *buf) { memcpy_P(buf, APPKEY, 16); }
 
 #ifdef ACTIVATION_MODE_ABP
 static Preferences preferences;
-static uint32_t lmic_sequence;
 
 static uint8_t NETWORK_SESSION_KEY[16] = TTN_NETWORK_SESSION_KEY;
 static uint8_t APP_SESSION_KEY[16] = TTN_APP_SESSION_KEY;
@@ -108,16 +106,11 @@ void do_send(osjob_t *j)
     }
     else
     {
-
 #ifdef ACTIVATION_MODE_ABP
-        txFrameCounter = lmic_sequence++;
-        preferences.putUInt(SEQUENCE_KEY, lmic_sequence);
-        SERIAL_PRINTF(SEQUENCE_KEY "=%u\n", lmic_sequence);
-#else
-        txFrameCounter++;
+        preferences.putUInt(SEQUENCE_KEY, LMIC.seqnoUp);
+        SERIAL_PRINTF(SEQUENCE_KEY "=%u\n", LMIC.seqnoUp);
 #endif
-
-        lora_send(txFrameCounter);
+        lora_send(LMIC.seqnoUp);
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
@@ -229,7 +222,7 @@ void onEvent(ev_t ev)
 #ifdef DISPLAY_ENABLED
         display.drawString(0, 0, "TXCOMPLETE");
         char buf[32];
-        sprintf(buf, "TXC: %ld", txFrameCounter);
+        sprintf(buf, "TXC: %d", LMIC.seqnoUp);
         display.drawString(0, 12, buf);
         sprintf(buf, "RXC: %ld (%d)", rxFrameCounter, LMIC.dataLen);
         display.drawString(52, 12, buf);
@@ -363,11 +356,10 @@ void LoRaWANHandler::start()
 {
 #ifdef ACTIVATION_MODE_ABP
     preferences.begin(PREFERENCE_NAME);
-    lmic_sequence = preferences.getUInt(SEQUENCE_KEY);
-    lmic_sequence++;
-    preferences.putUInt(SEQUENCE_KEY, lmic_sequence);
-    SERIAL_PRINTF(SEQUENCE_KEY "=%u\n", lmic_sequence);
-    LMIC.seqnoUp = lmic_sequence;
+    LMIC.seqnoUp = preferences.getUInt(SEQUENCE_KEY);
+    LMIC.seqnoUp++;
+    preferences.putUInt(SEQUENCE_KEY, LMIC.seqnoUp);
+    SERIAL_PRINTF(SEQUENCE_KEY "=%u\n", LMIC.seqnoUp);
 #endif
 
     do_send(&sendjob);
